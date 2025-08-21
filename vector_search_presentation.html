@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HNSW vs IVF: Vector Search Algorithms</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, rgba(30, 60, 114, 0.8) 0%, rgba(42, 82, 152, 0.8) 100%), url('images/Gemini_Generated_Image_8qji5u8qji5u8qji.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: white;
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            padding: 80px 40px 40px 40px;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 2.8rem;
+            margin-bottom: 25px;
+            color: #4ecdc4;
+        }
+
+        h3 {
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+            color: #ffd93d;
+        }
+
+        .content {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .algorithm-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .pros, .cons {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+
+        .pros {
+            border-left-color: #4ecdc4;
+        }
+
+        .cons {
+            border-left-color: #ff6b6b;
+        }
+
+        ul {
+            text-align: left;
+            font-size: 1.3rem;
+            line-height: 1.6;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .timeline-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            flex: 1;
+            margin: 0 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .performance-chart {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .chart-bar {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 1.2rem;
+        }
+
+        .bar-label {
+            width: 150px;
+            text-align: left;
+        }
+
+        .bar {
+            height: 25px;
+            border-radius: 12px;
+            margin: 0 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar-hnsw {
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+        }
+
+        .bar-ivf {
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+        }
+
+        .navigation {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:active {
+            transform: translateY(0);
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            text-align: left;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, rgba(255, 215, 61, 0.3), rgba(78, 205, 196, 0.3));
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table th {
+            background: rgba(255, 255, 255, 0.15);
+            font-weight: bold;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInStep {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .step-animation {
+            margin-bottom: 15px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .step-animation:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .slide.active .content > * {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .slide.active .content > *:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .slide.active .content > *:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .slide.active .content > *:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        /* Wikipedia Popup Styles */
+        .wiki-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            background: #ffffff;
+            border: 1px solid #a2a9b1;
+            border-radius: 8px;
+            padding: 0;
+            z-index: 2000;
+            overflow-y: auto;
+            color: #202122;
+            font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .wiki-popup.show {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .wiki-popup-header {
+            background: #f8f9fa;
+            border-bottom: 1px solid #a2a9b1;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wiki-popup-title {
+            font-size: 1.8rem;
+            font-weight: normal;
+            color: #000;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .wiki-popup-close {
+            background: #f8f9fa;
+            border: 1px solid #a2a9b1;
+            color: #54595d;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 3px;
+            transition: background 0.2s ease;
+            font-family: sans-serif;
+        }
+
+        .wiki-popup-close:hover {
+            background: #eaecf0;
+        }
+
+        .wiki-popup-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            text-align: left;
+            padding: 20px;
+        }
+
+        .wiki-popup-loading {
+            text-align: center;
+            padding: 40px;
+            color: #54595d;
+            font-family: sans-serif;
+        }
+
+        .wiki-popup-error {
+            color: #d33;
+            text-align: center;
+            padding: 20px;
+            font-family: sans-serif;
+        }
+
+        .wiki-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #a2a9b1;
+            border-radius: 3px;
+            margin: 10px 0;
+            display: block;
+        }
+
+        .wiki-image-caption {
+            font-size: 0.9rem;
+            color: #54595d;
+            text-align: center;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .wiki-infobox {
+            background: #f8f9fa;
+            border: 1px solid #a2a9b1;
+            border-radius: 3px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+
+        .wiki-infobox-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #000;
+        }
+
+        .wiki-external-link {
+            color: #36c;
+            text-decoration: none;
+        }
+
+        .wiki-external-link:hover {
+            text-decoration: underline;
+        }
+
+        .wiki-link {
+            cursor: pointer;
+            color: #4ecdc4;
+            text-decoration: underline;
+            transition: color 0.3s ease;
+        }
+
+        .wiki-link:hover {
+            color: #ffd93d;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1999;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <!-- Wikipedia Popup Modal -->
+        <div class="overlay" id="overlay"></div>
+        <div class="wiki-popup" id="wikiPopup">
+            <div class="wiki-popup-header">
+                <div class="wiki-popup-title" id="wikiPopupTitle">Wikipedia Article</div>
+                <button class="wiki-popup-close" onclick="closeWikiPopup()">×</button>
+            </div>
+            <div class="wiki-popup-content" id="wikiPopupContent">
+                <div class="wiki-popup-loading">Loading Wikipedia content...</div>
+            </div>
+        </div>
+
+        <!-- Navigation (Hidden but functional) -->
+        <div class="navigation" style="display: none;">
+            <button class="nav-btn" onclick="previousSlide()">← Previous</button>
+            <button class="nav-btn" onclick="nextSlide()">Next →</button>
+            <button class="nav-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+        </div>
+
+        <!-- Slide Counter -->
+        <div class="slide-counter">
+            <span id="current-slide">1</span> / <span id="total-slides">14</span>
+        </div>
+
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="content">
+                <h1>HNSW vs IVF</h1>
+                <h2>Vector Search Algorithms for High-Dimensional Data</h2>
+                <p style="font-size: 1.4rem; margin-top: 30px; opacity: 0.8;">
+                    Technical Deep Dive for RAG Systems & Beyond
+                </p>
+                <p style="font-size: 1.2rem; margin-top: 20px; opacity: 0.6;">
+                    by Dmytro Dragan
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Whoami -->
+        <div class="slide">
+            <div class="content" style="padding: 0; display: flex; width: 100%; height: 100%;">
+                <!-- Left side: Background without filters -->
+                <div style="width: 50%; height: 100%; background: url('images/Gemini_Generated_Image_8qji5u8qji5u8qji.png'); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center;">
+                    <h2 style="font-size: 4rem; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.7);">whoami</h2>
+                </div>
+                
+                <!-- Right side: Image and description -->
+                <div style="width: 50%; height: 100%; background: linear-gradient(135deg, rgba(30, 60, 114, 0.8) 0%, rgba(42, 82, 152, 0.8) 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <img src="images/author.png" alt="Dmytro Dragan" style="width: 240px; height: 240px; border-radius: 50%; object-fit: cover; object-position: center 25%; border: 4px solid rgba(255, 255, 255, 0.3); margin-bottom: 20px;">
+                        <h3 style="color: #4ecdc4; margin-bottom: 10px; font-size: 2rem;">Dmytro Dragan</h3>
+                        <p style="font-size: 1.4rem; color: #ffd93d; margin-bottom: 20px;">Data Lead Engineer</p>
+                    </div>
+                    <div class="algorithm-box" style="max-width: 500px; width: 100%;">
+                        <ul style="font-size: 1.1rem; text-align: left; margin: 0;">
+                            <li>Thinker, overthinker, over</li>
+                            <li>Professional problem solver (sometimes I even solve the right problem)</li>
+                            <li>Fluent in software engineering, sarcasm, and Architecting</li>
+                            <li>Can design complex Data & AI systems… can't collect IKEA furniture</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Agenda -->
+        <div class="slide">
+            <div class="content">
+                <h2>Agenda</h2>
+                <div class="algorithm-box">
+                    <ul style="font-size: 1.4rem; text-align: left; list-style: none;">
+                        <li>1. Vector Search in RAG Systems</li>
+                        <li>2. Word Embeddings: The Foundation</li>
+                        <li>3. The k-NN Problem & Why ANN Matters</li>
+                        <li>4. Evolution of ANN Algorithms</li>
+                        <li>5. HNSW: Hierarchical Navigable Small World</li>
+                        <li>6. HNSW Step-by-Step Example</li>
+                        <li>7. HNSW Pros & Cons Analysis</li>
+                        <li>8. IVF: Inverted File Index</li>
+                        <li>9. IVF Step-by-Step Example</li>
+                        <li>10. IVF Pros & Cons Analysis</li>
+                        <li>11. Advanced Variants & Hybrid Approaches</li>
+                        <li>12. Performance Comparison</li>
+                        <li>13. Algorithm Selection Guide</li>
+                        <li>14. Benchmarking Results</li>
+                        <li>15. Practical Implementation Advice</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: RAG Introduction -->
+        <div class="slide">
+            <div class="content">
+                <h2>Vector Search in RAG Systems</h2>
+                <div class="two-column">
+                    <div class="algorithm-box">
+                        <h3>RAG: The Primary Use Case</h3>
+                        <p style="font-size: 1.2rem; margin-bottom: 20px;">
+                            <strong>Retrieval-Augmented Generation (RAG)</strong> is one of the main applications driving vector search algorithm development.
+                        </p>
+                        <ul style="font-size: 1.1rem;">
+                            <li><span class="highlight">Semantic Search:</span> Find relevant documents based on meaning</li>
+                            <li><span class="highlight">Knowledge Retrieval:</span> Access external knowledge bases</li>
+                            <li><span class="highlight">Context Enhancement:</span> Provide relevant context to LLMs</li>
+                            <li><span class="highlight">Real-time Responses:</span> Sub-second retrieval for interactive applications</li>
+                        </ul>
+                    </div>
+                    <div class="algorithm-box">
+                        <h3>RAG Architecture</h3>
+                        <img src="images/rag_introduction.png" 
+                             alt="RAG System Architecture" 
+                             style="width: 100%; max-width: 400px; height: auto; border-radius: 12px; margin: 20px 0;">
+                        <p style="font-size: 1rem; opacity: 0.9;">
+                            Vector search algorithms power the retrieval component, enabling efficient similarity matching between queries and document embeddings.
+                        </p>
+                    </div>
+                </div>
+                <div class="algorithm-box">
+                    <p style="font-size: 1.3rem; text-align: center;">
+                        <strong>Why Vector Search Matters:</strong> RAG systems require <span class="highlight">fast, accurate retrieval</span> from millions of documents, 
+                        making efficient vector search algorithms essential for real-world applications.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Word Embeddings -->
+        <div class="slide">
+            <div class="content">
+                <h2>Word Embeddings: The Foundation</h2>
+                <div class="two-column">
+                    <div class="algorithm-box">
+                        <h3>Semantic Similarity in Vector Space</h3>
+                        <p style="font-size: 1.2rem; margin-bottom: 20px;">
+                            <strong>Word embeddings</strong> transform words into high-dimensional vectors where 
+                            <span class="highlight">semantically similar words are geometrically close</span>.
+                        </p>
+                        <ul style="font-size: 1.1rem;">
+                            <li><span class="highlight">"dog" ≈ "puppy":</span> Similar meaning, close vectors</li>
+                            <li><span class="highlight">"houses" ≠ "dog":</span> Different meaning, distant vectors</li>
+                            <li><span class="highlight">Analogies preserved:</span> "man:woman => king:queen"</li>
+                        </ul>
+                    </div>
+                    <div class="algorithm-box">
+                        <h3>Visualization of Embeddings</h3>
+                        <img src="images/embeddings.png" 
+                             alt="Word Embeddings Visualization" 
+                             style="width: 100%; max-width: 450px; height: auto; border-radius: 12px; margin: 20px 0;">
+                        <p style="font-size: 1rem; opacity: 0.9;">
+                            The geometric proximity of vectors directly reflects semantic relationships between words.
+                        </p>
+                    </div>
+                </div>
+                <div class="algorithm-box">
+                    <p style="font-size: 1.3rem; text-align: center;">
+                        <strong>Key Principle:</strong> <span class="highlight">Semantic similarity = Geometric proximity</span> in vector space. 
+                        This fundamental relationship enables vector search algorithms to find relevant content efficiently.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: The k-NN Problem -->
+        <div class="slide">
+            <div class="content">
+                <h2>The k-NN Problem</h2>
+                <div class="algorithm-box">
+                    <h3>Linear Search Reality</h3>
+                    <div class="code-block" style="white-space: pre;">
+# Brute force k-NN: O(n·d) complexity
+for each query_vector:
+    distances = []
+    for each vector in database:  # n vectors
+        dist = compute_distance(query, vector)  # d dimensions
+        distances.append(dist)
+    return k_smallest(distances)
+                    </div>
+                    <div class="two-column">
+                        <div>
+                            <h3 style="color: #ff6b6b;">The Challenge</h3>
+                            <ul>
+                                <li>1M vectors × 1536 dims = <span class="highlight">1.5B calculations</span></li>
+                                <li>100ms+ latency per query</li>
+                                <li>Curse of dimensionality</li>
+                                <li>Doesn't scale with dataset size</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 style="color: #4ecdc4;">ANN Solution</h3>
+                            <ul>
+                                <li>Trade accuracy for speed</li>
+                                <li>Sub-millisecond queries possible</li>
+                                <li>Memory-efficient indexing</li>
+                                <li>Scalable to billions of vectors</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: ANN History -->
+        <div class="slide">
+            <div class="content">
+                <h2>ANN Algorithm Evolution</h2>
+                                <div class="algorithm-box">
+                    <h3>ANN Algorithm Evolution: Visual Timeline</h3>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin: 20px 0;">
+                        <div style="text-align: center; background: rgba(255,255,255,0.15); padding: 12px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.3s ease;" onclick="showWikiContent('Voronoi diagram')">
+                            <div style="display: flex; flex-direction: column; align-items: center; flex: 1; justify-content: center;">
+                                <h4 style="color: #ffd93d; margin: 0 0 10px 0; font-size: 0.9rem;">1970s-80s</h4>
+                                <img src="images/Euclidean_Voronoi_diagram.svg.png" 
+                                     alt="Voronoi Diagram" style="width: 100%; max-width: 120px; height: auto; border-radius: 8px; margin-bottom: 12px;">
+                                <p style="font-size: 0.9rem; font-weight: bold; color: #4ecdc4; margin: 0;">Voronoi Diagrams</p>
+                                <p style="font-size: 0.7rem; opacity: 0.8; margin: 3px 0;">Geometric partitioning</p>
+                            </div>
+                        </div>
+                        <div style="text-align: center; background: rgba(255,255,255,0.15); padding: 12px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.3s ease;" onclick="showWikiContent('Relative neighborhood graph')">
+                            <div style="display: flex; flex-direction: column; align-items: center; flex: 1; justify-content: center;">
+                                <h4 style="color: #ffd93d; margin: 0 0 10px 0; font-size: 0.9rem;">1990s</h4>
+                                <img src="images/Relative_neighborhood_graph.svg.png" 
+                                     alt="Relative Neighborhood Graph" style="width: 100%; max-width: 120px; height: auto; border-radius: 8px; margin-bottom: 12px;">
+                                <p style="font-size: 0.9rem; font-weight: bold; color: #4ecdc4; margin: 0;">RNG</p>
+                                <p style="font-size: 0.7rem; opacity: 0.8; margin: 3px 0;">Graph-based approaches</p>
+                            </div>
+                        </div>
+                        <div style="text-align: center; background: rgba(255,255,255,0.15); padding: 12px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.3s ease;" onclick="showWikiContent('Locality-sensitive hashing')">
+                            <div style="display: flex; flex-direction: column; align-items: center; flex: 1; justify-content: center;">
+                                <h4 style="color: #ffd93d; margin: 0 0 10px 0; font-size: 0.9rem;">2000s</h4>
+                                <img src="images/lsh_image4.png" 
+                                     alt="LSH Trees" style="width: 100%; max-width: 120px; height: auto; border-radius: 8px; margin-bottom: 12px;">
+                                <p style="font-size: 0.9rem; font-weight: bold; color: #4ecdc4; margin: 0;">LSH & Trees</p>
+                                <p style="font-size: 0.7rem; opacity: 0.8; margin: 3px 0;">Random projections</p>
+                            </div>
+                        </div>
+                        <div style="text-align: center; background: rgba(255,255,255,0.15); padding: 12px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.3s ease;" onclick="showLanceDBContent('IVF-PQ')">
+                            <div style="display: flex; flex-direction: column; align-items: center; flex: 1; justify-content: center;">
+                                <h4 style="color: #ffd93d; margin: 0 0 10px 0; font-size: 0.9rem;">2010s</h4>
+                                <img src="images/ivfpq_ivf_desc.webp" 
+                                     alt="IVF PQ" style="width: 100%; max-width: 120px; height: auto; border-radius: 8px; margin-bottom: 12px;">
+                                <p style="font-size: 0.9rem; font-weight: bold; color: #4ecdc4; margin: 0;">IVF-PQ</p>
+                                <p style="font-size: 0.7rem; opacity: 0.8; margin: 3px 0;">Clustering + compression</p>
+                            </div>
+                        </div>
+                        <div style="text-align: center; background: rgba(255,255,255,0.15); padding: 12px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.3s ease;" onclick="showWikiContent('Hierarchical navigable small world')">
+                            <div style="display: flex; flex-direction: column; align-items: center; flex: 1; justify-content: center;">
+                                <h4 style="color: #ffd93d; margin: 0 0 10px 0; font-size: 0.9rem;">2016+</h4>
+                                <img src="images/hnsw.png" 
+                                     alt="HNSW Graph" style="width: 100%; max-width: 120px; height: auto; border-radius: 8px; margin-bottom: 12px;">
+                                <p style="font-size: 0.9rem; font-weight: bold; color: #4ecdc4; margin: 0;">HNSW</p>
+                                <p style="font-size: 0.7rem; opacity: 0.8; margin: 3px 0;">Multi-layer navigation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="algorithm-box">
+                    <p style="font-size: 1.3rem;">
+                        <strong>Key Insight:</strong> Modern algorithms combine <span class="highlight">graph navigation</span> with 
+                        <span class="highlight">hierarchical structures</span> and <span class="highlight">quantization techniques</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: HNSW Algorithm -->
+        <div class="slide">
+            <div class="content">
+                <h2>HNSW: Hierarchical Navigable Small World</h2>
+                <div class="two-column">
+                    <div class="algorithm-box">
+                        <h3>Core Concept</h3>
+                        <ul>
+                            <li><strong>Multi-layer graph:</strong> Higher layers = longer jumps</li>
+                            <li><strong>Greedy search:</strong> Navigate from coarse to fine</li>
+                            <li><strong>Small world property:</strong> Short paths between any nodes</li>
+                            <li><strong>Skip list inspiration:</strong> Probabilistic layer assignment</li>
+                        </ul>
+                    </div>
+                    <div class="algorithm-box">
+                        <h3>Parameters</h3>
+                        <div class="code-block" style="font-size: 1rem; white-space: pre;">
+<b>M</b> – The maximum number of graph edges per vector.
+Higher values increase memory usage but may improve search quality.
+<b>efSearch</b> – The size of the candidate queue during search. 
+<b>efConstruction</b> – Similar to efSearch but used during index construction.
+                        </div>
+                    </div>
+                </div>
+                <div class="performance-chart">
+                    <h3>HNSW Performance Characteristics</h3>
+                    <div class="chart-bar">
+                        <div class="bar-label">Search Speed:</div>
+                        <div class="bar bar-hnsw" style="width: 300px;"></div>
+                        <span>Excellent (log n)</span>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="bar-label">Memory Usage:</div>
+                        <div class="bar bar-ivf" style="width: 240px;"></div>
+                        <span>High (stores full vectors)</span>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="bar-label">Accuracy:</div>
+                        <div class="bar bar-hnsw" style="width: 280px;"></div>
+                        <span>Very High (95%+)</span>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="bar-label">Build Time:</div>
+                        <div class="bar bar-hnsw" style="width: 200px;"></div>
+                        <span>Moderate (n log n)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: HNSW Step-by-Step Example -->
+        <div class="slide">
+            <div class="content">
+                <h2>HNSW: Detailed Example with Dataset {1, 3, 5, 7, 10, 13, 15, 18}</h2>
+                <div class="algorithm-box">
+                    <h3>Setup: 8 Points in 1D Space</h3>
+                    <p style="font-size: 1.3rem; margin-bottom: 15px;">
+                        <strong>Points:</strong> {1, 3, 5, 7, 10, 13, 15, 18} | <strong>Distance:</strong> |a-b| | <strong>Max neighbors:</strong> M=2 per layer
+                    </p>
+                </div>
+                
+                <div class="two-column">
+                    <div class="algorithm-box">
+                        <h3>1. Build Phase (Left)</h3>
+                        <div style="font-size: 1.1rem; text-align: left;">
+                            <p style="margin-bottom: 15px;"><strong>Level Assignment (Randomized)</strong></p>
+                            <div class="code-block" style="font-size: 0.9rem; margin: 0; text-align: left; white-space: pre;">
+18 → L2
+15 → L1
+13 → L0
+10 → L1
+ 7 → L0
+ 5 → L0
+ 3 → L1
+ 1 → L0
+                            </div>
+                            
+                            <p style="margin-bottom: 15px; margin-top: 20px;"><strong>Build HNSW Connections</strong></p>
+                            <div class="code-block" style="font-size: 0.9rem; margin: 0; text-align: left; white-space: pre;">
+L2:
+    18
+
+L1:
+    18 <-> 15
+    15 <-> 10
+    10 <-> 3
+
+L0 (dense layer, M=2):
+    1 <-> 3
+    3 <-> {1,5}
+    5 <-> {3,7}
+    7 <-> {5,10}
+    10 <-> {7,13}
+    13 <-> {10,15}
+    15 <-> {13,18}
+    18 <-> {15}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="algorithm-box">
+                        <h3>2. Query Phase (Right)</h3>
+                        <div style="font-size: 1.1rem; text-align: left;">
+                            <p style="margin-bottom: 15px;"><strong>Query = 11, k = 2</strong></p>
+                            <div class="code-block" style="font-size: 0.85rem; margin: 0; text-align: left; white-space: pre;">
+Start at top layer (L2):
+    entry_point = 18
+    dist(11,18)=7
+    no better option → go down
+
+At L1:
+    current = 18
+    neighbors = [15]
+    dist(11,15)=4 → move to 15
+
+    current = 15
+    neighbors = [18,10]
+    dist(11,10)=1, dist(11,18)=7
+    → move to 10
+
+    current = 10
+    neighbors = [15,3]
+    dist(11,15)=4, dist(11,3)=8
+    best = 15 (already visited) → stop
+    → closest at L1 = 10
+    go down
+
+At L0 (full search around 10):
+    start = 10
+    neighbors = [7,13]
+    dist(11,7)=4, dist(11,13)=2
+    best = 13 → move to 13
+
+    current = 13
+    neighbors = [10,15]
+    dist(11,10)=1, dist(11,15)=4
+    best = 10 (already seen)
+
+    candidate pool = {10 (d=1), 13 (d=2), 15 (d=4), 7 (d=4)}
+                            </div>
+                            
+                            <p style="margin-bottom: 15px; margin-top: 20px;"><strong>3. Result</strong></p>
+                            <div class="code-block" style="font-size: 0.9rem; margin: 0; text-align: left; white-space: pre;">
+Top-k = 2 nearest:
+    10 (dist=1)
+    13 (dist=2)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="algorithm-box" style="margin-top: 30px;">
+                    <h3>Key Insights</h3>
+                    <ul style="font-size: 1.1rem; text-align: left;">
+                        <li><strong>Hierarchical navigation:</strong> Start coarse (L2), refine (L1), exhaustive (L0)</li>
+                        <li><strong>Efficient pruning:</strong> Only explore promising paths, avoid distant regions</li>
+                        <li><strong>Logarithmic complexity:</strong> O(log n) search time through layered structure</li>
+                        <li><strong>Quality guarantee:</strong> Full search at bottom layer ensures accuracy</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: HNSW Pros/Cons -->
+        <div class="slide">
+            <div class="content">
+                <h2>HNSW: Pros & Cons Analysis</h2>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h3 style="color: #4ecdc4;">✅ Pros</h3>
+                        <ul>
+                            <li><strong>Superior accuracy:</strong> 95%+ recall achievable</li>
+                            <li><strong>Fast queries:</strong> Sub-ms latency possible</li>
+                            <li><strong>No training required:</strong> Direct vector indexing</li>
+                            <li><strong>Robust to data distribution:</strong> Works with any metric</li>
+                            <li><strong>Dynamic updates:</strong> Easy insertion/deletion</li>
+                            <li><strong>Parallelizable:</strong> Multiple entry points</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h3 style="color: #ff6b6b;">❌ Cons</h3>
+                        <ul>
+                            <li><strong>Memory hungry:</strong> Stores full vectors + graph</li>
+                            <li><strong>RAM dependency:</strong> Entire index must fit in memory</li>
+                            <li><strong>Build complexity:</strong> O(n log n) construction time</li>
+                            <li><strong>Parameter sensitive:</strong> M, efConstruction tuning needed</li>
+                            <li><strong>Cost scaling:</strong> Expensive for billion-scale datasets</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="algorithm-box">
+                    <h3>Best Use Cases</h3>
+                    <p style="font-size: 1.3rem;">
+                        <span class="highlight">High-accuracy requirements</span>, sufficient RAM, 
+                        <span class="highlight">real-time applications</span>, dynamic datasets, 
+                        when query latency is critical
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: IVF Algorithm -->
+        <div class="slide">
+            <div class="content">
+                <h2>IVF: Inverted File Index</h2>
+                <div class="two-column">
+                    <div class="algorithm-box">
+                        <h3>Core Concept</h3>
+                        <ul>
+                            <li><strong>Clustering:</strong> Partition vectors into cells (Voronoi)</li>
+                            <li><strong>Inverted lists:</strong> Each cell contains vector IDs</li>
+                            <li><strong>Coarse quantizer:</strong> Find relevant cells quickly</li>
+                            <li><strong>Fine search:</strong> Search within selected cells only</li>
+                        </ul>
+                    </div>
+                    <div class="algorithm-box">
+                        <h3>Parameters</h3>
+                        <div class="code-block" style="font-size: 1rem; white-space: pre;">
+<b>nlist</b> - number of clusters
+<b>nprobe</b> - clusters searched per query:
+ a higher nprobe improves recall but increases search time.
+                        </div>
+                    </div>
+                </div>
+                <div class="performance-chart">
+                    <h3>IVF Performance Characteristics</h3>
+                    <div class="chart-bar">
+                        <div class="bar-label">Search Speed:</div>
+                        <div class="bar bar-ivf" style="width: 220px; background: linear-gradient(90deg, #4CAF50, #45a049)"></div>
+                        <span>Good (depends on nprobe)</span>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="bar-label">Memory Usage:</div>
+                        <div class="bar" style="width: 160px; background: linear-gradient(90deg, #4CAF50, #45a049);"></div>
+                        <span>Low (can use disk)</span>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="bar-label">Accuracy:</div>
+                        <div class="bar" style="width: 200px; background: linear-gradient(90deg, #FFD700, #FFA500);"></div>
+                        <span>Moderate (80-95%)</span>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="bar-label">Build Time:</div>
+                        <div class="bar bar-ivf" style="width: 180px;"></div>
+                        <span>Fast (k-means training)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8.5: IVF Step-by-Step Example -->
+        <div class="slide">
+            <div class="content">
+                <h2>IVF Construction & Search: Step-by-Step Example</h2>
+                <div class="algorithm-box">
+                    <h3>Setup: 8 Points in 1D Space (IVF-Flat)</h3>
+                    <p style="font-size: 1.3rem; margin-bottom: 15px;">
+                        <strong>Points:</strong> {1, 3, 5, 7, 10, 13, 15, 18} | <strong>Distance:</strong> |a-b| | <strong>k=3 clusters</strong> | <strong>Goal:</strong> top-2 neighbors
+                    </p>
+                </div>
+                
+                <div class="two-column">
+                    <div class="algorithm-box">
+                        <h3>Training & Build Process</h3>
+                        <div style="font-size: 1.1rem; text-align: left;">
+                            <p style="margin-bottom: 15px;"><strong>1) Train Coarse Quantizer (k-means)</strong></p>
+                            <div class="code-block" style="font-size: 0.9rem; margin: 0; text-align: left; white-space: pre;">
+Initial centers: 3, 10, 16
+Iteration 1:
+  Assign: {1,3,5}→3, {7,10,13}→10, {15,18}→16
+  Recompute: 3, 10, 16.5
+  Reassign: No change ✓
+
+Final centroids:
+  C1 = 3
+  C2 = 10  
+  C3 = 16.5
+                            </div>
+                            
+                            <p style="margin-bottom: 15px; margin-top: 20px;"><strong>2) Build Inverted Lists</strong></p>
+                            <div class="code-block" style="font-size: 0.9rem; margin: 0; text-align: left; white-space: pre;">
+List(C1=3): {1, 3, 5}
+List(C2=10): {7, 10, 13}
+List(C3=16.5): {15, 18}
+
+IVF Index: 3 coarse buckets with raw vectors
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="algorithm-box">
+                        <h3>Search Examples</h3>
+                        <div style="font-size: 1.1rem; text-align: left;">
+                            <p style="margin-bottom: 15px;"><strong>Query A: q = 11</strong></p>
+                            <div class="code-block" style="font-size: 0.8rem; margin: 0; text-align: left; white-space: pre;">
+Coarse distances:
+|11-3| = 8
+|11-10| = 1 ← closest
+|11-16.5| = 5.5
+
+nprobe=1: Probe List(C2=10)
+Fine distances: |11-7|=4, |11-10|=1, |11-13|=2
+Result: {10, 13} ✓ (exact)
+                            </div>
+                            
+                            <p style="margin-bottom: 15px; margin-top: 20px;"><strong>Query B: q = 14</strong></p>
+                            <div class="code-block" style="font-size: 0.8rem; margin: 0; text-align: left; white-space: pre;">
+Coarse distances:
+|14-3| = 11
+|14-10| = 4
+|14-16.5| = 2.5 ← closest
+
+nprobe=1: Probe List(C3=16.5)
+Fine distances: |14-15|=1, |14-18|=4
+Result: {15, 18} ✗ (missed 13)
+
+nprobe=2: Probe C3 + C2
+Fine distances: + |14-13|=1
+Result: {13, 15} ✓ (exact)
+                            </div>
+                            
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: IVF Pros/Cons -->
+        <div class="slide">
+            <div class="content">
+                <h2>IVF: Pros & Cons Analysis</h2>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h3 style="color: #4ecdc4;">✅ Pros</h3>
+                        <ul>
+                            <li><strong>Memory efficient:</strong> Can work with disk storage</li>
+                            <li><strong>Scalable:</strong> Handles billions of vectors</li>
+                            <li><strong>Fast training:</strong> K-means clustering</li>
+                            <li><strong>Tunable accuracy:</strong> Adjust nprobe parameter</li>
+                            <li><strong>Compression friendly:</strong> Works well with PQ</li>
+                            <li><strong>Distributed:</strong> Easy to shard across machines</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h3 style="color: #ff6b6b;">❌ Cons</h3>
+                        <ul>
+                            <li><strong>Training required:</strong> Need representative data</li>
+                            <li><strong>Imbalanced clusters:</strong> Some cells much larger</li>
+                            <li><strong>Boundary effects:</strong> May miss nearby vectors</li>
+                            <li><strong>Cold start:</strong> Poor performance on new distributions</li>
+                            <li><strong>Parameter sensitivity:</strong> ncells, nprobe tuning</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="algorithm-box">
+                    <h3>Best Use Cases</h3>
+                    <p style="font-size: 1.3rem;">
+                        <span class="highlight">Large-scale datasets</span>, limited memory, 
+                        <span class="highlight">batch processing</span>, when accuracy trade-offs acceptable, 
+                        distributed systems
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Advanced Variants -->
+        <div class="slide">
+            <div class="content">
+                <h2>Advanced Variants & Hybrid Approaches</h2>
+                <div class="two-column">
+                    <div>
+                        <div class="algorithm-box">
+                            <h3>IVF-PQ</h3>
+                            <p><strong>IVF + Product Quantization</strong></p>
+                            <ul>
+                                <li>Compress vectors to 8-64 bytes</li>
+                                <li>100x memory reduction</li>
+                                <li>Asymmetric distance computation</li>
+                            </ul>
+                        </div>
+                        <div class="algorithm-box">
+                            <h3>DiskANN</h3>
+                            <p><strong>SSD-Resident Graph Index</strong></p>
+                            <ul>
+                                <li>Vamana graph algorithm</li>
+                                <li>Disk-optimized layout</li>
+                                <li>Billion-scale on single machine</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="algorithm-box">
+                            <h3>IVF-HNSW Coarse Quantizer</h3>
+                            <p><strong>Hybrid Approach</strong></p>
+                            <ul>
+                                <li>HNSW for cluster assignment</li>
+                                <li>Faster than k-means search</li>
+                                <li>Better cluster selection</li>
+                            </ul>
+                        </div>
+                        <div class="algorithm-box">
+                            <h3>SPANN</h3>
+                            <p><strong>Sparse Partitioned ANN</strong></p>
+                            <ul>
+                                <li>Memory-disk hybrid</li>
+                                <li>Dynamic load balancing</li>
+                                <li>Microsoft's approach</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="algorithm-box">
+                    <p style="font-size: 1.2rem;">
+                        <strong>Trend:</strong> Modern systems combine <span class="highlight">graph navigation</span> with 
+                        <span class="highlight">quantization</span> and <span class="highlight">disk storage</span> for optimal price/performance
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Performance Comparison -->
+        <div class="slide">
+            <div class="content">
+                <h2>Performance Comparison</h2>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>HNSW</th>
+                            <th>IVF-Flat</th>
+                            <th>IVF-PQ</th>
+                            <th>DiskANN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Query Latency</strong></td>
+                            <td style="color: #4ecdc4;">0.1-1ms ⭐⭐⭐</td>
+                            <td>1-10ms ⭐⭐</td>
+                            <td>0.5-5ms ⭐⭐⭐</td>
+                            <td>2-20ms ⭐⭐</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Memory Usage</strong></td>
+                            <td style="color: #ff6b6b;">4-8GB/1M vectors ⭐</td>
+                            <td>4-8GB/1M vectors ⭐</td>
+                            <td style="color: #4ecdc4;">0.1-0.5GB/1M vectors ⭐⭐⭐</td>
+                            <td style="color: #4ecdc4;">0.5-2GB/1M vectors ⭐⭐⭐</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Recall@10</strong></td>
+                            <td style="color: #4ecdc4;">95-99% ⭐⭐⭐</td>
+                            <td>85-95% ⭐⭐</td>
+                            <td>80-90% ⭐⭐</td>
+                            <td style="color: #4ecdc4;">90-95% ⭐⭐⭐</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Build Time</strong></td>
+                            <td>Hours ⭐⭐</td>
+                            <td style="color: #4ecdc4;">Minutes ⭐⭐⭐</td>
+                            <td style="color: #4ecdc4;">Minutes ⭐⭐⭐</td>
+                            <td>Hours ⭐⭐</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Max Scale</strong></td>
+                            <td>100M vectors ⭐⭐</td>
+                            <td>1B+ vectors ⭐⭐⭐</td>
+                            <td style="color: #4ecdc4;">10B+ vectors ⭐⭐⭐</td>
+                            <td style="color: #4ecdc4;">1B+ vectors ⭐⭐⭐</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="algorithm-box" style="margin-top: 20px;">
+                    <h3>FAISS Benchmarks on SIFT-1M Dataset</h3>
+                    <div class="two-column">
+                        <div>
+                            <h4 style="color: #4ecdc4; margin-bottom: 10px;">HNSW Performance</h4>
+                            <ul style="font-size: 1rem;">
+                                <li><strong>Search time:</strong> 0.081s (nmslib) vs 0.538s (IVF16384,Flat)</li>
+                                <li><strong>Recall@1:</strong> 81.95% (nmslib) vs 89.80% (IVF16384,Flat)</li>
+                                <li><strong>Memory:</strong> 512 + 796 MB (nmslib) vs 512 + 8 MB (IVF)</li>
+                                <li><strong>Build time:</strong> 173s (nmslib) vs 240s (IVF)</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style="color: #ff6b6b; margin-bottom: 10px;">IVF Performance</h4>
+                            <ul style="font-size: 1rem;">
+                                <li><strong>IVF4096,Flat:</strong> Good balance of speed/accuracy</li>
+                                <li><strong>IVF16384,Flat:</strong> Better recall but slower build</li>
+                                <li><strong>GPU acceleration:</strong> 5s build time vs 240s CPU</li>
+                                <li><strong>Memory efficiency:</strong> Only 8MB overhead vs 796MB</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p style="font-size: 1.1rem; margin-top: 15px; text-align: center;">
+                        <a href="https://github.com/facebookresearch/faiss/wiki/Indexing-1M-vectors" target="_blank" style="color: #4ecdc4; text-decoration: underline;">
+                            📊 View detailed FAISS benchmarks →
+                        </a>
+                    </p>
+                </div>
+                <p style="font-size: 1.2rem; margin-top: 20px; text-align: center;">
+                    * Benchmarks on SIFT-1M dataset, actual performance varies by use case
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 15: Algorithm Selection Guide -->
+        <div class="slide">
+            <div class="content">
+                <h2>Algorithm Selection Guide</h2>
+                <div class="two-column">
+                    <div>
+                        <div class="algorithm-box">
+                            <h3 style="color: #4ecdc4;">Choose HNSW When:</h3>
+                            <ul>
+                                <li><strong>High accuracy critical</strong> (>95% recall)</li>
+                                <li><strong>Low latency required</strong> (<1ms)</li>
+                                <li><strong>Sufficient RAM</strong> (can fit full index)</li>
+                                <li><strong>Dynamic updates</strong> frequent</li>
+                                <li><strong>Real-time applications</strong> (chatbots, search)</li>
+                                <li><strong>Dataset < 100M vectors</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="algorithm-box">
+                            <h3 style="color: #ff6b6b;">Choose IVF When:</h3>
+                            <ul>
+                                <li><strong>Large-scale datasets</strong> (>100M vectors)</li>
+                                <li><strong>Memory constraints</strong> (limited RAM)</li>
+                                <li><strong>Batch processing</strong> acceptable</li>
+                                <li><strong>Cost optimization</strong> priority</li>
+                                <li><strong>80-90% accuracy sufficient</strong></li>
+                                <li><strong>Distributed deployment</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="algorithm-box">
+                    <h3>RAG-Specific Considerations</h3>
+                    <ul style="font-size: 1.2rem; text-align: center; list-style: none;">
+                        <li>📖 <strong>Document retrieval:</strong> HNSW for real-time chat, IVF-PQ for large knowledge bases</li>
+                        <li>🔍 <strong>Semantic search:</strong> High recall important → prefer HNSW</li>
+                        <li>💰 <strong>Cost vs Quality:</strong> IVF-PQ for budget constraints, HNSW for premium</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: Benchmarking Results -->
+        <div class="slide">
+            <div class="content">
+                <h2>Benchmarking Results</h2>
+                <div class="algorithm-box" style="padding: 20px;">
+                    <div class="two-column" style="gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <h3 style="color: #4ecdc4; margin-bottom: 10px; font-size: 1.2rem;">Graph-based Algorithms</h3>
+                            <p style="font-size: 1.1rem; margin-bottom: 10px;"><strong>HNSW, NSG, Vamana</strong></p>
+                            <ul style="font-size: 1rem; margin: 0; padding-left: 20px;">
+                                <li><strong>Best recall</strong> performance</li>
+                                <li><strong>Heavy on memory</strong> and build time</li>
+                                <li>Excellent for <strong>high-accuracy</strong> applications</li>
+                                <li>Ideal for <strong>real-time</strong> systems</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 style="color: #ff6b6b; margin-bottom: 10px; font-size: 1.2rem;">Quantization / IVF</h3>
+                            <p style="font-size: 1.1rem; margin-bottom: 10px;"><strong>FAISS-IVF, ScaNN, DiskANN</strong></p>
+                            <ul style="font-size: 1rem; margin: 0; padding-left: 20px;">
+                                <li><strong>Balance</strong> speed, memory, and scale</li>
+                                <li>Good for <strong>billion+ vectors</strong></li>
+                                <li>Efficient <strong>memory usage</strong></li>
+                                <li>Suitable for <strong>large-scale</strong> deployments</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="two-column" style="gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <h3 style="color: #ffd93d; margin-bottom: 10px; font-size: 1.2rem;">Tree / Partitioning</h3>
+                            <p style="font-size: 1.1rem; margin-bottom: 10px;"><strong>Annoy, KD-tree variants</strong></p>
+                            <ul style="font-size: 1rem; margin: 0; padding-left: 20px;">
+                                <li><strong>Simple</strong> and lightweight</li>
+                                <li>Usually <strong>lower recall</strong></li>
+                                <li>Easy to <strong>implement</strong> and deploy</li>
+                                <li>Good for <strong>prototyping</strong></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 style="color: #a8e6cf; margin-bottom: 10px; font-size: 1.2rem;">Newer Players</h3>
+                            <p style="font-size: 1.1rem; margin-bottom: 10px;"><strong>Qdrant, Milvus, PyNNDescent</strong></p>
+                            <ul style="font-size: 1rem; margin: 0; padding-left: 20px;">
+                                <li><strong>Competitive recall</strong> + scalability</li>
+                                <li><strong>Evolving fast</strong> with new features</li>
+                                <li>Modern <strong>production-ready</strong> solutions</li>
+                                <li>Active <strong>community</strong> support</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div style="text-align: center; border-top: 2px solid rgba(255,255,255,0.2); padding-top: 15px;">
+                        <p style="font-size: 1.1rem; margin-bottom: 10px;">
+                            For detailed performance comparisons, visit 
+                            <a href="https://ann-benchmarks.com/index.html" target="_blank" style="color: #4ecdc4; text-decoration: underline; font-weight: bold;">ann-benchmarks.com</a>
+                        </p>
+                        <img src="images/ann-benchmark.png" 
+                             alt="ANN Benchmark Results" 
+                             style="width: 100%; max-width: 400px; height: auto; border-radius: 8px; margin: 0 auto; display: block; opacity: 0.9;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Practical Implementation -->
+        <div class="slide">
+            <div class="content">
+                <h2>Practical Implementation Advice</h2>
+                <div class="two-column">
+                    <div class="algorithm-box">
+                        <h3>Library Recommendations</h3>
+                        <ul>
+                            <li><strong>Faiss:</strong> Meta's library, both HNSW & IVF</li>
+                            <li><strong>hnswlib:</strong> Pure HNSW, fastest implementation</li>
+                            <li><strong>Weaviate:</strong> Production vector database</li>
+                            <li><strong>Pinecone:</strong> Managed service</li>
+                            <li><strong>Chroma:</strong> Open source vector store</li>
+                        </ul>
+                    </div>
+                    <div class="algorithm-box">
+                        <h3>Key Implementation Tips</h3>
+                        <ul>
+                            <li><strong>Benchmark with your data:</strong> Synthetic benchmarks mislead</li>
+                            <li><strong>Monitor recall:</strong> Set up A/B testing</li>
+                            <li><strong>Start simple:</strong> Begin with basic HNSW or IVF</li>
+                            <li><strong>Tune incrementally:</strong> One parameter at a time</li>
+                            <li><strong>Plan for growth:</strong> Consider future scale</li>
+                        </ul>
+                    </div>
+                </div>               
+                <div class="algorithm-box">
+                    <h3>Practical Advice</h3>
+                    <div class="two-column">
+                        <div>
+                            <h4 style="color: #4ecdc4; margin-bottom: 10px;">HNSW Tuning</h4>
+                            <div style="font-size: 1rem;">
+                                <ul>
+                                    <li><strong>M:</strong> Memory related. Optimal value for speed depends on internal dimensionality. M=24 often works well</li>
+                                    <li><strong>efSearch:</strong> Runtime parameter, recall vs qps</li>
+                                    <li><strong>efConstruction:</strong> Construction time vs query time. Set efConstruction as efSearch with high recall</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="color: #ff6b6b; margin-bottom: 10px;">IVF Tuning</h4>
+                            <div style="font-size: 1rem;">
+                                <ul>
+                                    <li><strong>nprobe:</strong> Runtime parameter, recall vs qps</li>
+                                    <li><strong>nlist:</strong> During construction, amount of quantization</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: Thank You -->
+        <div class="slide">
+            <div class="content">
+                <h1>Thank You!</h1>
+                <div class="algorithm-box" style="max-width: 900px; margin: 40px auto;">
+                    <h2 style="color: #4ecdc4; margin-bottom: 30px;">To the Amazing Team</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; text-align: center;">
+                        <div>
+                            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                                <svg width="40" height="40" viewBox="0 0 24 24" style="margin-right: 15px;">
+                                    <path fill="#10a37f" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142-.0852 4.783-2.7582a.7712.7712 0 0 0 .7806 0l5.8428 3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/>
+                                </svg>
+                                <h3 style="color: #10a37f; margin: 0;">Professor ChatGPT</h3>
+                            </div>
+                            <p style="font-size: 1.2rem; margin-bottom: 30px;">For learning and examples</p>
+                            
+                            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                                <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/claude-color.png" 
+                                     alt="Claude" 
+                                     style="width: 40px; height: 40px; margin-right: 15px; border-radius: 8px;">
+                                <h3 style="color: #da7756; margin: 0;">Mon ami Claude</h3>
+                            </div>
+                            <p style="font-size: 1.2rem; margin-bottom: 20px;">For presentation draft</p>
+                        </div>
+                        <div>
+                            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                                <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/cursor.png" 
+                                     alt="Cursor" 
+                                     style="width: 40px; height: 40px; margin-right: 15px; border-radius: 8px;">
+                                <h3 style="color: #00D4AA; margin: 0;">Bro Cursor</h3>
+                            </div>
+                            <p style="font-size: 1.2rem; margin-bottom: 30px;">For the main implementation</p>
+                            
+                            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                                <img src="https://helios-i.mashable.com/imagery/articles/00zEnhbB6mXQs8x5yXw38bT/images-3.fit_lim.size_376x.webp" 
+                                     alt="Gemini" 
+                                     style="width: 40px; height: 40px; margin-right: 15px; border-radius: 8px;">
+                                <h3 style="color: #4285F4; margin: 0;">Mrs. Gemini</h3>
+                            </div>
+                            <p style="font-size: 1.2rem; margin-bottom: 20px;">For generated images</p>
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 2px solid rgba(255, 255, 255, 0.2);">
+                        <h3 style="color: #4ecdc4; margin-bottom: 20px;">Questions & Discussion</h3>
+                        <p style="font-size: 1.3rem; opacity: 0.9; font-style: italic;">
+                            If you laughed once today, my job here is done
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('total-slides').textContent = totalSlides;
+        
+        function showSlide(n) {
+            // Prevent going beyond slide boundaries
+            if (n < 0) {
+                n = 0;
+            } else if (n >= slides.length) {
+                n = slides.length - 1;
+            }
+            
+            slides[currentSlide].classList.remove('active');
+            currentSlide = n;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+        }
+        
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                showSlide(currentSlide + 1);
+            }
+        }
+        
+        function previousSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                previousSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(0);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(slides.length - 1);
+            } else if (e.key === 'f' || e.key === 'F11') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+        });
+        
+        // Mouse/touch navigation
+        let startX = 0;
+        let startY = 0;
+        
+        document.addEventListener('touchstart', function(e) {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+        
+        document.addEventListener('touchend', function(e) {
+            if (!startX || !startY) return;
+            
+            let endX = e.changedTouches[0].clientX;
+            let endY = e.changedTouches[0].clientY;
+            
+            let diffX = startX - endX;
+            let diffY = startY - endY;
+            
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                if (diffX > 0) {
+                    nextSlide();
+                } else {
+                    previousSlide();
+                }
+            }
+            
+            startX = 0;
+            startY = 0;
+        });
+        
+        // Click navigation on slide edges
+        document.addEventListener('click', function(e) {
+            const slideWidth = window.innerWidth;
+            const clickX = e.clientX;
+            
+            if (e.target.classList.contains('nav-btn')) return;
+            
+            if (clickX < slideWidth * 0.2) {
+                previousSlide();
+            } else if (clickX > slideWidth * 0.8) {
+                nextSlide();
+            }
+        });
+
+        // Animation restart function
+        function restartAnimation() {
+            const steps = document.querySelectorAll('.step-animation');
+            steps.forEach((step, index) => {
+                step.style.animation = 'none';
+                step.offsetHeight; // Trigger reflow
+                step.style.animation = `fadeInStep 0.8s ease-in-out ${index}s forwards`;
+            });
+        }
+
+        // Wikipedia Popup Functions
+        function showWikiContent(topic) {
+            const popup = document.getElementById('wikiPopup');
+            const overlay = document.getElementById('overlay');
+            const title = document.getElementById('wikiPopupTitle');
+            const content = document.getElementById('wikiPopupContent');
+            
+            // Show popup and overlay
+            popup.classList.add('show');
+            overlay.classList.add('show');
+            
+            // Set title
+            title.textContent = topic;
+            
+            // Show loading
+            content.innerHTML = '<div class="wiki-popup-loading">Loading Wikipedia content...</div>';
+            
+            // Fetch Wikipedia content
+            fetchWikiContent(topic);
+        }
+
+        function showLanceDBContent(topic) {
+            const popup = document.getElementById('wikiPopup');
+            const overlay = document.getElementById('overlay');
+            const title = document.getElementById('wikiPopupTitle');
+            const content = document.getElementById('wikiPopupContent');
+            
+            // Show popup and overlay
+            popup.classList.add('show');
+            overlay.classList.add('show');
+            
+            // Set title
+            title.textContent = 'LanceDB: ' + topic;
+            
+            // Show LanceDB content
+            content.innerHTML = `
+                <div class="wiki-popup-content">
+                    <h3>Understanding LanceDB's IVF-PQ Index</h3>
+                    <p>IVF-PQ is a composite index that combines inverted file index (IVF) and product quantization (PQ). The implementation in LanceDB provides several parameters to fine-tune the index's size, query throughput, latency and recall.</p>
+                    
+                    <h4>Product Quantization</h4>
+                    <p>Quantization is a compression technique used to reduce the dimensionality of an embedding to speed up search. Product quantization (PQ) works by dividing a large, high-dimensional vector into equally sized subvectors. Each subvector is assigned a "reproduction value" that maps to the nearest centroid of points for that subvector.</p>
+                    
+                    <p><strong>Memory Reduction Example:</strong></p>
+                    <ul>
+                        <li>Original: 128 × 32 = 4096 bits</li>
+                        <li>Quantized: 4 × 8 = 32 bits</li>
+                        <li>Result: <strong>128x reduction</strong> in memory requirements</li>
+                    </ul>
+                    
+                    <h4>Inverted File Index</h4>
+                    <p>While PQ helps with reducing the size of the index, IVF primarily addresses search performance. The primary purpose of an inverted file index is to facilitate rapid and effective nearest neighbor search by narrowing down the search space.</p>
+                    
+                    <p>In IVF, the PQ vector space is divided into <em>Voronoi cells</em>, which are essentially partitions that consist of all the points in the space that are within a threshold distance of the given region's seed point.</p>
+                    
+                    <h4>Key Parameters</h4>
+                    <ul>
+                        <li><strong>num_partitions:</strong> The number of partitions in the IVF portion</li>
+                        <li><strong>num_sub_vectors:</strong> The number of sub-vectors for Product Quantization</li>
+                        <li><strong>nprobes:</strong> Number of Voronoi cells to search during query</li>
+                    </ul>
+                    
+                    <p style="margin-top: 20px; text-align: center;">
+                        <a href="https://lancedb.github.io/lancedb/concepts/index_ivfpq/" target="_blank" style="color: #4ecdc4; text-decoration: underline;">
+                            📖 Read full LanceDB IVF-PQ documentation →
+                        </a>
+                    </p>
+                </div>
+            `;
+        }
+
+        function closeWikiPopup() {
+            const popup = document.getElementById('wikiPopup');
+            const overlay = document.getElementById('overlay');
+            
+            popup.classList.remove('show');
+            overlay.classList.remove('show');
+        }
+
+        async function fetchWikiContent(topic) {
+            try {
+                // Use Wikipedia API to search for the topic
+                const searchUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`;
+                
+                const response = await fetch(searchUrl);
+                
+                if (!response.ok) {
+                    throw new Error('Wikipedia article not found');
+                }
+                
+                const data = await response.json();
+                
+                // Extract content
+                let content = '';
+                
+                if (data.extract) {
+                    content = data.extract;
+                } else if (data.extract_html) {
+                    // Remove HTML tags for plain text
+                    content = data.extract_html.replace(/<[^>]*>/g, '');
+                } else {
+                    content = 'No content available for this topic.';
+                }
+                
+                // Display content
+                const contentDiv = document.getElementById('wikiPopupContent');
+                contentDiv.innerHTML = `
+                    <div class="wiki-popup-content">
+                        <p>${content}</p>
+                        ${data.content_urls ? `
+                            <p style="margin-top: 20px; text-align: center;">
+                                <a href="${data.content_urls.desktop.page}" target="_blank" style="color: #4ecdc4; text-decoration: underline;">
+                                    Read full article on Wikipedia →
+                                </a>
+                            </p>
+                        ` : ''}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error fetching Wikipedia content:', error);
+                const contentDiv = document.getElementById('wikiPopupContent');
+                contentDiv.innerHTML = `
+                    <div class="wiki-popup-error">
+                        <p>Sorry, couldn't load Wikipedia content for "${topic}".</p>
+                        <p>This might be due to:</p>
+                        <ul style="text-align: left; margin-top: 10px;">
+                            <li>No Wikipedia article found for this topic</li>
+                            <li>Network connectivity issues</li>
+                            <li>Wikipedia API limitations</li>
+                        </ul>
+                        <p style="margin-top: 15px;">
+                            <a href="https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(topic)}" target="_blank" style="color: #4ecdc4; text-decoration: underline;">
+                                Search Wikipedia for "${topic}" →
+                            </a>
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        // Close popup when clicking overlay
+        document.getElementById('overlay').addEventListener('click', closeWikiPopup);
+        
+        // Close popup with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeWikiPopup();
+            }
+        });
+    </script>
+</body>
+</html>
